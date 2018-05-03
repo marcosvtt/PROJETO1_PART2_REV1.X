@@ -1,4 +1,4 @@
-MPASM 5.77                          MAIN.ASM   5-2-2018  22:02:07         PAGE  1
+MPASM 5.77                          MAIN.ASM   5-3-2018  0:11:29         PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -24,13 +24,13 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00008 #DEFINE BANK0   BCF STATUS,RP0          ;SETA BANK 0 DE MEMÓRIA
                       00009 #DEFINE BANK1   BSF STATUS,RP0          ;SETA BANK 1 DE MEMÓRIA
                       00010 
-                      00011 #DEFINE THAB            INTCON, TOIE            ;HABILITA A INTERRUPÇÃO DO TIMER
-                      00012 #DEFINE TFLAG           INTCON, T0IF            ;FLAG DE ESTOURO DO TIMER
-                      00013 #DEFINE PFLAG           INTCON, INTF            ;FLAG  DE INTERRUPÇÃO EM RB0
-                      00014 #DEFINE PC_INTERRUPT    INTCON, RBIF            ;FLAG DE INTERRUPÇÃO  EM PORT CHANGE RB4:RB7
-                      00015 
-                      00016 #DEFINE ESTADO_BOMBA    ESTADO,1
-                      00017 #DEFINE ESTADO_VALVULA  ESTADO,2
+                      00011 #DEFINE T0_INTERRUPT    INTCON, T0IF            ;FLAG DE ESTOURO DO TIMER
+                      00012 #DEFINE PC_INTERRUPT    INTCON, RBIF            ;FLAG DE INTERRUPÇÃO  EM PORT CHANGE RB4:RB7
+                      00013 
+                      00014 #DEFINE ESTADO_BOMBA    ESTADO,1
+                      00015 #DEFINE ESTADO_VALVULA  ESTADO,2
+                      00016  
+                      00017  #DEFINE DELAY_CTE  .156
                       00018 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *;* * * * * * * * * * * * * * * * *
                       00019 ;*                                                         VARIÁVEIS                                    
                                                                                    * 
@@ -39,139 +39,178 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00022         CBLOCK 0x20                             ;ENDEREÇO INICIAL DA MÉMORIA DO USUÁRIO
   00000020            00023                 ESTADO  
   00000021            00024                 PB
-                      00025         ENDC                                            ;FIM DE BLOCO DE VARIÁVEIS
-                      00026 
+  00000022            00025                 OLD_ESTADO
+                      00026         ENDC                                            ;FIM DE BLOCO DE VARIÁVEIS
                       00027 
-                      00028 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-                      00029 ;*                                              DEFINE ENTRADAS                                         
+                      00028 
+                      00029 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+                      00030 ;*                                              DEFINE ENTRADAS                                         
                                                                                             * 
-                      00030 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-                      00031 
-                      00032 #DEFINE I_CAIXA                 PORTB,4
-                      00033 #DEFINE I_CISTERNA              PORTB,5
-                      00034 #DEFINE I_RUA                   PORTB,6
-                      00035 ;#DEFINE                        PORTB,7
-                      00036 
-                      00037 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-                      00038 ;*                                              DEFINE SAIDAS                                           
+                      00031 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+                      00032 
+                      00033 #DEFINE I_CAIXA                 PORTB,4
+                      00034 #DEFINE I_CISTERNA              PORTB,5
+                      00035 #DEFINE I_RUA                   PORTB,6
+                      00036 ;#DEFINE                        PORTB,7
+                      00037 
+                      00038 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+                      00039 ;*                                              DEFINE SAIDAS                                           
                                                                                             * 
-                      00039 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-                      00040 
-MPASM 5.77                          MAIN.ASM   5-2-2018  22:02:07         PAGE  2
+                      00040 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+MPASM 5.77                          MAIN.ASM   5-3-2018  0:11:29         PAGE  2
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-                      00041 #DEFINE O_ON_OFF                PORTA,0
-                      00042 #DEFINE O_BOMBA                 PORTA,1
-                      00043 #DEFINE O_VALVULA               PORTA,2
-                      00044 
+                      00041 
+                      00042 #DEFINE O_ON_OFF                PORTA,0
+                      00043 #DEFINE O_BOMBA                 PORTA,1
+                      00044 #DEFINE O_VALVULA               PORTA,2
                       00045 
-                      00046         ORG 0x00
-0000   2???           00047         GOTO    INICIO
-                      00048         
-                      00049         ORG     0x04
-                      00050         
-0004   1C0B           00051         BTFSS   PC_INTERRUPT
-0005   0009           00052         RETFIE
-0006   1405           00053         BSF     O_ON_OFF
-0007   0806           00054         MOVF    PORTB,W
-0008   3970           00055         ANDLW   B'01110000'
-0009   00A1           00056         MOVWF   PB
-000A   2???           00057         GOTO    CHECA_CAIXA
-                      00058         
-000B                  00059 CHECA_CAIXA
-000B   1B21           00060         BTFSC   PB,6                            ;RUA
-000C   1AA1           00061         BTFSC   PB,5
-000D   2???           00062         GOTO    FECHA_VALVULA
-000E   2???           00063         GOTO    ABRE_VALVULA
-                      00064         
-000F                  00065 CHECA_BOMBA
-000F   1AA1           00066         BTFSC   PB,5                            ;CISTERNA
-0010   1A21           00067         BTFSC   PB,4
-0011   2???           00068         GOTO    FECHA_BOMBA
-0012   2???           00069         GOTO    ABRE_BOMBA
-                      00070 
-                      00071 
-0013                  00072 FECHA_BOMBA
-0013   10A0           00073         BCF     ESTADO_BOMBA
-0014   100B           00074         BCF     PC_INTERRUPT
-0015   0820           00075         MOVFW   ESTADO
-0016   0085           00076         MOVWF   PORTA
-0017   0009           00077         RETFIE
-                      00078 
-0018                  00079 ABRE_BOMBA
-0018   14A0           00080         BSF     ESTADO_BOMBA
-0019   100B           00081         BCF     PC_INTERRUPT
-001A   0820           00082         MOVFW   ESTADO
-001B   0085           00083         MOVWF   PORTA
-001C   0009           00084         RETFIE
-                      00085 
-001D                  00086 FECHA_VALVULA
-001D   1120           00087         BCF     ESTADO_VALVULA
-001E   2???           00088         GOTO    CHECA_BOMBA
-                      00089 
-001F                  00090 ABRE_VALVULA
-001F   1520           00091         BSF     ESTADO_VALVULA
-0020   2???           00092         GOTO    CHECA_BOMBA
-                      00093 
-MPASM 5.77                          MAIN.ASM   5-2-2018  22:02:07         PAGE  3
+                      00046 
+                      00047         ORG 0x00
+0000   2???           00048         GOTO    INICIO
+                      00049         
+                      00050         ORG     0x04
+                      00051         
+0004   0820           00052         MOVFW   ESTADO
+0005   00A2           00053         MOVWF   OLD_ESTADO
+0006   180B           00054         BTFSC   PC_INTERRUPT        ;CHECA SE A INTERRUPÇÃO OCORREU EM RB7:RB4
+0007   2???           00055         GOTO    INT_RB              ;VAI PARA ROTINA DE INTERRUPÇÃO CORRESPONDENTE
+0008   190B           00056         BTFSC   T0_INTERRUPT
+0009   2???           00057         GOTO    TIMER
+000A   0009           00058         RETFIE
+                      00059         
+000B                  00060 TIMER
+000B   110B           00061         BCF     T0_INTERRUPT
+000C   1885           00062         BTFSC   O_BOMBA
+000D   1085           00063         BCF     O_BOMBA
+000E   1905           00064         BTFSC   O_VALVULA
+000F   1105           00065         BCF     O_VALVULA
+0010   0009           00066         RETFIE
+                      00067         
+0011                  00068 PULSA   
+0011   0822           00069         MOVFW   OLD_ESTADO
+Message[305]: Using default destination of 1 (file).
+0012   06A0           00070         XORWF   ESTADO
+0013   00A2           00071         MOVWF   OLD_ESTADO
+0014   18A2           00072         BTFSC   OLD_ESTADO,1
+0015   1485           00073         BSF     O_BOMBA
+0016   1922           00074         BTFSC   OLD_ESTADO,2
+0017   1505           00075         BSF     O_VALVULA
+0018   2???           00076         CALL    DELAY
+0019   0009           00077         RETFIE
+                      00078         
+001A                  00079 INT_RB
+001A   1405           00080         BSF     O_ON_OFF        ;acende led de estado
+001B   0806           00081         MOVF    PORTB,W         ;lê PORTB e copia em W
+001C   3970           00082         ANDLW   B'01110000'     ;operação AND para que apenas os valores correspondentes as portas RB6, 
+                            RB5 e RB4 permaneçam
+001D   00A1           00083         MOVWF   PB              ;copia o novo valor de W na variavel PB
+001E   2???           00084         GOTO    CHECA_CAIXA     
+                      00085         
+001F                  00086 CHECA_CAIXA
+001F   1B21           00087         BTFSC   PB,6            ;IF RUA and !CISTERNA
+0020   1AA1           00088         BTFSC   PB,5            
+0021   2???           00089         GOTO    FECHA_VALVULA   ;<= CASO FALSO
+0022   2???           00090         GOTO    ABRE_VALVULA    ;<= CASO VERDADEIRO
+                      00091         
+MPASM 5.77                          MAIN.ASM   5-3-2018  0:11:29         PAGE  3
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-                      00094 
-0021                  00095 LIMPA_TUDO
-                      00096         
-0021   0185           00097         CLRF    PORTA
-0022   0186           00098         CLRF    PORTB
-0023   01A0           00099         CLRF    ESTADO
-                      00100         
-0024   1405           00101         BSF     O_ON_OFF
-0025   0008           00102         RETURN
-                      00103         
-                      00104         
-0026                  00105 MAIN
-0026   2???           00106         GOTO    MAIN     
-                      00107 
-                      00108 
-0027                  00109 INICIO
-0027   1683           00110         BANK1
-0028   30E0           00111         MOVLW   B'11100000'
+0023                  00092 CHECA_BOMBA
+0023   1AA1           00093         BTFSC   PB,5            ;IF CISTERNA and !CAIXA
+0024   1A21           00094         BTFSC   PB,4            
+0025   2???           00095         GOTO    FECHA_BOMBA     ;<= CASO FALSO
+0026   2???           00096         GOTO    ABRE_BOMBA      ;<= CASO VERDADEIRO
+                      00097 
+                      00098 
+0027                  00099 FECHA_BOMBA
+0027   10A0           00100         BCF     ESTADO_BOMBA    ;ESTADO DA BOMBA = DESLIGADO
+0028   100B           00101         BCF     PC_INTERRUPT    ;LIMPA FLAG DE INTERRUPÇÃO
+0029   2???           00102         GOTO    PULSA
+002A   0009           00103         RETFIE                  ;FIM DA INTERRUPÇÃO
+                      00104 
+002B                  00105 ABRE_BOMBA
+002B   14A0           00106         BSF     ESTADO_BOMBA    ;ESTADO DA BOMBA = DESLIGADO
+002C   100B           00107         BCF     PC_INTERRUPT    ;LIMPA FLAG DE INTERRUPÇÃO
+002D   2???           00108         GOTO    PULSA
+002E   0009           00109         RETFIE          
+                      00110 
+002F                  00111 FECHA_VALVULA
+002F   1120           00112         BCF     ESTADO_VALVULA
+0030   2???           00113         GOTO    CHECA_BOMBA
+                      00114 
+0031                  00115 ABRE_VALVULA
+0031   1520           00116         BSF     ESTADO_VALVULA
+0032   2???           00117         GOTO    CHECA_BOMBA
+                      00118 
+0033                  00119 DELAY   
+0033   0181           00120         CLRF    TMR0
+0034   309C           00121         MOVLW   DELAY_CTE
+0035   0081           00122         MOVWF   TMR0
+0036   0008           00123         RETURN
+                      00124 
+0037                  00125 LIMPA_TUDO
+                      00126         
+0037   0185           00127         CLRF    PORTA
+0038   0186           00128         CLRF    PORTB
+0039   01A0           00129         CLRF    ESTADO
+003A   01A2           00130         CLRF    OLD_ESTADO
+                      00131         
+003B   1405           00132         BSF     O_ON_OFF
+003C   0008           00133         RETURN
+                      00134         
+                      00135         
+003D                  00136 MAIN
+003D   2???           00137         GOTO    MAIN     
+                      00138 
+                      00139 
+003E                  00140 INICIO
+003E   1683           00141         BANK1
+003F   30E0           00142         MOVLW   B'11100000'
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0029   0085           00112         MOVWF   TRISA
-002A   30FF           00113         MOVLW   B'11111111'
+0040   0085           00143         MOVWF   TRISA
+MPASM 5.77                          MAIN.ASM   5-3-2018  0:11:29         PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0041   30FF           00144         MOVLW   B'11111111'
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-002B   0086           00114         MOVWF   TRISB
-                      00115 
-002C   3091           00116         MOVLW   B'10010001'
+0042   0086           00145         MOVWF   TRISB
+                      00146 
+0043   3091           00147         MOVLW   B'10010001'
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-002D   0081           00117         MOVWF   OPTION_REG
-002E   3088           00118         MOVLW   B'10001000'
-002F   008B           00119         MOVWF   INTCON
-                      00120 
-0030   1283           00121         BANK0
-                      00122 
-0031   2???           00123         CALL    LIMPA_TUDO
-0032   0820           00124         MOVF    ESTADO,W
-0033   0085           00125         MOVWF   PORTA
-                      00126         ;BSF    O_ON_OFF
-0034   2???           00127         GOTO    MAIN
-                      00128         
-                      00129 
-                      00130 
-                      00131 
-3F33                  00132         END
-MPASM 5.77                          MAIN.ASM   5-2-2018  22:02:07         PAGE  4
+0044   0081           00148         MOVWF   OPTION_REG
+0045   30A8           00149         MOVLW   B'10101000'
+0046   008B           00150         MOVWF   INTCON
+                      00151 
+0047   1283           00152         BANK0
+                      00153 
+0048   2???           00154         CALL    LIMPA_TUDO
+0049   0820           00155         MOVF    ESTADO,W
+004A   0085           00156         MOVWF   PORTA
+                      00157         ;BSF    O_ON_OFF
+004B   2???           00158         GOTO    MAIN
+                      00159         
+                      00160 
+                      00161 
+                      00162 
+3F33                  00163         END
+MPASM 5.77                          MAIN.ASM   5-3-2018  0:11:29         PAGE  5
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
-ABRE_BOMBA                        00000018
-ABRE_VALVULA                      0000001F
+ABRE_BOMBA                        0000002B
+ABRE_VALVULA                      00000031
 ADDEN                             00000003
 ADEN                              00000003
 BANK0                             BCF STATUS,RP0
@@ -194,8 +233,8 @@ CCP1Y                             00000004
 CCPR1                             00000015
 CCPR1H                            00000016
 CCPR1L                            00000015
-CHECA_BOMBA                       0000000F
-CHECA_CAIXA                       0000000B
+CHECA_BOMBA                       00000023
+CHECA_CAIXA                       0000001F
 CIS                               00000003
 CM0                               00000000
 CM1                               00000001
@@ -208,6 +247,8 @@ CSRC                              00000007
 DATA_CP_OFF                       00003FFF
 DATA_CP_ON                        00003EFF
 DC                                00000001
+DELAY                             00000033
+DELAY_CTE                         .156
 EEADR                             0000009B
 EECON1                            0000009C
 EECON2                            0000009D
@@ -218,29 +259,30 @@ ESTADO                            00000020
 ESTADO_BOMBA                      ESTADO,1
 ESTADO_VALVULA                    ESTADO,2
 F                                 00000001
-FECHA_BOMBA                       00000013
-FECHA_VALVULA                     0000001D
+FECHA_BOMBA                       00000027
+FECHA_VALVULA                     0000002F
 FERR                              00000002
-FSR                               00000004
-GIE                               00000007
-MPASM 5.77                          MAIN.ASM   5-2-2018  22:02:07         PAGE  5
+MPASM 5.77                          MAIN.ASM   5-3-2018  0:11:29         PAGE  6
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+FSR                               00000004
+GIE                               00000007
 INDF                              00000000
-INICIO                            00000027
+INICIO                            0000003E
 INTCON                            0000000B
 INTE                              00000004
 INTEDG                            00000006
 INTF                              00000001
+INT_RB                            0000001A
 IRP                               00000007
 I_CAIXA                           PORTB,4
 I_CISTERNA                        PORTB,5
 I_RUA                             PORTB,6
-LIMPA_TUDO                        00000021
-MAIN                              00000026
+LIMPA_TUDO                        00000037
+MAIN                              0000003D
 NOT_BO                            00000000
 NOT_BOD                           00000000
 NOT_BOR                           00000000
@@ -250,6 +292,7 @@ NOT_RBPU                          00000007
 NOT_T1SYNC                        00000002
 NOT_TO                            00000004
 OERR                              00000001
+OLD_ESTADO                        00000022
 OPTION_REG                        00000081
 OSCF                              00000003
 O_BOMBA                           PORTA,1
@@ -261,7 +304,6 @@ PCLATH                            0000000A
 PCON                              0000008E
 PC_INTERRUPT                      INTCON, RBIF
 PEIE                              00000006
-PFLAG                             INTCON, INTF
 PIE1                              0000008C
 PIR1                              0000000C
 PORTA                             00000005
@@ -271,6 +313,7 @@ PS0                               00000000
 PS1                               00000001
 PS2                               00000002
 PSA                               00000003
+PULSA                             00000011
 RA0                               00000000
 RA1                               00000001
 RA2                               00000002
@@ -278,16 +321,16 @@ RA3                               00000003
 RA4                               00000004
 RA5                               00000005
 RA6                               00000006
-RA7                               00000007
-RB0                               00000000
-RB1                               00000001
-RB2                               00000002
-MPASM 5.77                          MAIN.ASM   5-2-2018  22:02:07         PAGE  6
+MPASM 5.77                          MAIN.ASM   5-3-2018  0:11:29         PAGE  7
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+RA7                               00000007
+RB0                               00000000
+RB1                               00000001
+RB2                               00000002
 RB3                               00000003
 RB4                               00000004
 RB5                               00000005
@@ -313,6 +356,7 @@ T0CS                              00000005
 T0IE                              00000005
 T0IF                              00000002
 T0SE                              00000004
+T0_INTERRUPT                      INTCON, T0IF
 T1CKPS0                           00000004
 T1CKPS1                           00000005
 T1CON                             00000010
@@ -320,8 +364,7 @@ T1OSCEN                           00000003
 T2CKPS0                           00000000
 T2CKPS1                           00000001
 T2CON                             00000012
-TFLAG                             INTCON, T0IF
-THAB                              INTCON, TOIE
+TIMER                             0000000B
 TMR0                              00000001
 TMR0IE                            00000005
 TMR0IF                            00000002
@@ -337,16 +380,16 @@ TMR2IE                            00000001
 TMR2IF                            00000001
 TMR2ON                            00000002
 TOUTPS0                           00000003
-TOUTPS1                           00000004
-TOUTPS2                           00000005
-TOUTPS3                           00000006
-TRISA                             00000085
-MPASM 5.77                          MAIN.ASM   5-2-2018  22:02:07         PAGE  7
+MPASM 5.77                          MAIN.ASM   5-3-2018  0:11:29         PAGE  8
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+TOUTPS1                           00000004
+TOUTPS2                           00000005
+TOUTPS3                           00000006
+TRISA                             00000085
 TRISA0                            00000000
 TRISA1                            00000001
 TRISA2                            00000002
@@ -396,16 +439,16 @@ _CP_OFF                           00003FFF
 _CP_ON                            00001FFF
 _DEVID1                           00002006
 _ER_OSC_CLKOUT                    00003FFF
-_ER_OSC_NOCLKOUT                  00003FFE
-_EXTCLK_OSC                       00003FEF
-_FOSC_ECIO                        00003FEF
-_FOSC_EXTRCCLK                    00003FFF
-MPASM 5.77                          MAIN.ASM   5-2-2018  22:02:07         PAGE  8
+MPASM 5.77                          MAIN.ASM   5-3-2018  0:11:29         PAGE  9
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+_ER_OSC_NOCLKOUT                  00003FFE
+_EXTCLK_OSC                       00003FEF
+_FOSC_ECIO                        00003FEF
+_FOSC_EXTRCCLK                    00003FFF
 _FOSC_EXTRCIO                     00003FFE
 _FOSC_HS                          00003FEE
 _FOSC_INTOSCCLK                   00003FFD
@@ -439,6 +482,6 @@ __16F628A                         00000001
 
 Errors   :     0
 Warnings :     0 reported,     0 suppressed
-Messages :     3 reported,     0 suppressed
+Messages :     4 reported,     0 suppressed
 
 
