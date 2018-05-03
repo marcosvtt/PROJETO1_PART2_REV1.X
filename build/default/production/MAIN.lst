@@ -1,4 +1,4 @@
-MPASM 5.77                          MAIN.ASM   5-2-2018  1:12:59         PAGE  1
+MPASM 5.77                          MAIN.ASM   5-2-2018  21:09:46         PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -57,7 +57,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                                                                                             * 
                       00039 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
                       00040 
-MPASM 5.77                          MAIN.ASM   5-2-2018  1:12:59         PAGE  2
+MPASM 5.77                          MAIN.ASM   5-2-2018  21:09:46         PAGE  2
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -77,67 +77,98 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 0005   0009           00052         RETFIE
 0006   1405           00053         BSF     O_ON_OFF
 0007   0806           00054         MOVF    PORTB,W
-0008   00A1           00055         MOVWF   PB
-0009   3970           00056         ANDLW   B'01110000'
-000A   0821           00057         MOVF    PB,W
-000B   0085           00058         MOVWF   PORTA
-000C   100B           00059         BCF     PC_INTERRUPT
-000D   0009           00060         RETFIE
-                      00061 
-                      00062 
-000E                  00063 LIMPA_TUDO
-                      00064         
-000E   0185           00065         CLRF    PORTA
-000F   0186           00066         CLRF    PORTB
-0010   01A0           00067         CLRF    ESTADO
-                      00068         
-0011   1405           00069         BSF     O_ON_OFF
-0012   0008           00070         RETURN
-                      00071         
-                      00072         
-0013                  00073 MAIN
-0013   2???           00074         GOTO    MAIN     
+0008   3970           00055         ANDLW   B'01110000'
+0009   00A1           00056         MOVWF   PB
+000A   1B21           00057         BTFSC   PB,6                            ;RUA
+000B   1AA1           00058         BTFSC   PB,5
+000C   2???           00059         CALL    FECHA_VALVULA
+000D   1EA1           00060         BTFSS   PB,5
+000E   2???           00061         CALL    ABRE_VALVULA
+000F   1AA1           00062         BTFSC   PB,5                            ;CISTERNA
+0010   1A21           00063         BTFSC   PB,4
+0011   2???           00064         GOTO    FECHA_BOMBA
+0012   1E21           00065         BTFSS   PB,4
+0013   2???           00066         GOTO    ABRE_BOMBA
+                      00067 
+                      00068 
+0014                  00069 FECHA_BOMBA
+0014   10A0           00070         BCF     ESTADO_BOMBA
+0015   100B           00071         BCF     PC_INTERRUPT
+0016   0820           00072         MOVFW   ESTADO
+0017   0085           00073         MOVWF   PORTA
+0018   0009           00074         RETFIE
                       00075 
-                      00076 
-0014                  00077 INICIO
-0014   1683           00078         BANK1
-0015   30E0           00079         MOVLW   B'11100000'
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0016   0085           00080         MOVWF   TRISA
-0017   30FF           00081         MOVLW   B'11111111'
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0018   0086           00082         MOVWF   TRISB
-                      00083 
-0019   3091           00084         MOVLW   B'10010001'
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-001A   0081           00085         MOVWF   OPTION_REG
-001B   3088           00086         MOVLW   B'10001000'
-001C   008B           00087         MOVWF   INTCON
-                      00088 
-001D   1283           00089         BANK0
+0019                  00076 ABRE_BOMBA
+0019   14A0           00077         BSF     ESTADO_BOMBA
+001A   100B           00078         BCF     PC_INTERRUPT
+001B   0820           00079         MOVFW   ESTADO
+001C   0085           00080         MOVWF   PORTA
+001D   0009           00081         RETFIE
+                      00082 
+001E                  00083 FECHA_VALVULA
+001E   1120           00084         BCF     ESTADO_VALVULA
+001F   0008           00085         RETURN
+                      00086 
+0020                  00087 ABRE_VALVULA
+0020   1520           00088         BSF     ESTADO_VALVULA
+0021   0008           00089         RETURN
                       00090 
-MPASM 5.77                          MAIN.ASM   5-2-2018  1:12:59         PAGE  3
+                      00091 
+0022                  00092 LIMPA_TUDO
+                      00093         
+MPASM 5.77                          MAIN.ASM   5-2-2018  21:09:46         PAGE  3
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-001E   2???           00091         CALL    LIMPA_TUDO
-001F   0820           00092         MOVF    ESTADO,W
-0020   0085           00093         MOVWF   PORTA
-                      00094         ;BSF    O_ON_OFF
-0021   2???           00095         GOTO    MAIN
-                      00096         
-                      00097 
-                      00098 
-                      00099 
-3F33                  00100         END
-MPASM 5.77                          MAIN.ASM   5-2-2018  1:12:59         PAGE  4
+0022   0185           00094         CLRF    PORTA
+0023   0186           00095         CLRF    PORTB
+0024   01A0           00096         CLRF    ESTADO
+                      00097         
+0025   1405           00098         BSF     O_ON_OFF
+0026   0008           00099         RETURN
+                      00100         
+                      00101         
+0027                  00102 MAIN
+0027   2???           00103         GOTO    MAIN     
+                      00104 
+                      00105 
+0028                  00106 INICIO
+0028   1683           00107         BANK1
+0029   30E0           00108         MOVLW   B'11100000'
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+002A   0085           00109         MOVWF   TRISA
+002B   30FF           00110         MOVLW   B'11111111'
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+002C   0086           00111         MOVWF   TRISB
+                      00112 
+002D   3091           00113         MOVLW   B'10010001'
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+002E   0081           00114         MOVWF   OPTION_REG
+002F   3088           00115         MOVLW   B'10001000'
+0030   008B           00116         MOVWF   INTCON
+                      00117 
+0031   1283           00118         BANK0
+                      00119 
+0032   2???           00120         CALL    LIMPA_TUDO
+0033   0820           00121         MOVF    ESTADO,W
+0034   0085           00122         MOVWF   PORTA
+                      00123         ;BSF    O_ON_OFF
+0035   2???           00124         GOTO    MAIN
+                      00125         
+                      00126 
+                      00127 
+                      00128 
+3F33                  00129         END
+MPASM 5.77                          MAIN.ASM   5-2-2018  21:09:46         PAGE  4
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+ABRE_BOMBA                        00000019
+ABRE_VALVULA                      00000020
 ADDEN                             00000003
 ADEN                              00000003
 BANK0                             BCF STATUS,RP0
@@ -182,27 +213,29 @@ ESTADO                            00000020
 ESTADO_BOMBA                      ESTADO,1
 ESTADO_VALVULA                    ESTADO,2
 F                                 00000001
+FECHA_BOMBA                       00000014
+FECHA_VALVULA                     0000001E
 FERR                              00000002
 FSR                               00000004
 GIE                               00000007
 INDF                              00000000
-INICIO                            00000014
-INTCON                            0000000B
-INTE                              00000004
-INTEDG                            00000006
-INTF                              00000001
-MPASM 5.77                          MAIN.ASM   5-2-2018  1:12:59         PAGE  5
+INICIO                            00000028
+MPASM 5.77                          MAIN.ASM   5-2-2018  21:09:46         PAGE  5
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+INTCON                            0000000B
+INTE                              00000004
+INTEDG                            00000006
+INTF                              00000001
 IRP                               00000007
 I_CAIXA                           PORTB,4
 I_CISTERNA                        PORTB,5
 I_RUA                             PORTB,6
-LIMPA_TUDO                        0000000E
-MAIN                              00000013
+LIMPA_TUDO                        00000022
+MAIN                              00000027
 NOT_BO                            00000000
 NOT_BOD                           00000000
 NOT_BOR                           00000000
@@ -246,16 +279,16 @@ RB1                               00000001
 RB2                               00000002
 RB3                               00000003
 RB4                               00000004
-RB5                               00000005
-RB6                               00000006
-RB7                               00000007
-RBIE                              00000003
-MPASM 5.77                          MAIN.ASM   5-2-2018  1:12:59         PAGE  6
+MPASM 5.77                          MAIN.ASM   5-2-2018  21:09:46         PAGE  6
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+RB5                               00000005
+RB6                               00000006
+RB7                               00000007
+RBIE                              00000003
 RBIF                              00000000
 RCIE                              00000005
 RCIF                              00000005
@@ -305,16 +338,16 @@ TOUTPS3                           00000006
 TRISA                             00000085
 TRISA0                            00000000
 TRISA1                            00000001
-TRISA2                            00000002
-TRISA3                            00000003
-TRISA4                            00000004
-TRISA5                            00000005
-MPASM 5.77                          MAIN.ASM   5-2-2018  1:12:59         PAGE  7
+MPASM 5.77                          MAIN.ASM   5-2-2018  21:09:46         PAGE  7
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+TRISA2                            00000002
+TRISA3                            00000003
+TRISA4                            00000004
+TRISA5                            00000005
 TRISA6                            00000006
 TRISA7                            00000007
 TRISB                             00000086
@@ -364,16 +397,16 @@ _FOSC_ECIO                        00003FEF
 _FOSC_EXTRCCLK                    00003FFF
 _FOSC_EXTRCIO                     00003FFE
 _FOSC_HS                          00003FEE
-_FOSC_INTOSCCLK                   00003FFD
-_FOSC_INTOSCIO                    00003FFC
-_FOSC_LP                          00003FEC
-_FOSC_XT                          00003FED
-MPASM 5.77                          MAIN.ASM   5-2-2018  1:12:59         PAGE  8
+MPASM 5.77                          MAIN.ASM   5-2-2018  21:09:46         PAGE  8
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+_FOSC_INTOSCCLK                   00003FFD
+_FOSC_INTOSCIO                    00003FFC
+_FOSC_LP                          00003FEC
+_FOSC_XT                          00003FED
 _HS_OSC                           00003FEE
 _IDLOC0                           00002000
 _IDLOC1                           00002001
