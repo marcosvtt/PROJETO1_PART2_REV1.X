@@ -1,4 +1,3 @@
-Message[305] C:\USERS\MARCOS\DOCUMENTS\MICRO_2018_1\PROJETO1_PART2_REV1.X\MAIN.ASM 70 : Using default destination of 1 (file).
-Message[302] C:\USERS\MARCOS\DOCUMENTS\MICRO_2018_1\PROJETO1_PART2_REV1.X\MAIN.ASM 143 : Register in operand not in bank 0.  Ensure that bank bits are correct.
-Message[302] C:\USERS\MARCOS\DOCUMENTS\MICRO_2018_1\PROJETO1_PART2_REV1.X\MAIN.ASM 145 : Register in operand not in bank 0.  Ensure that bank bits are correct.
-Message[302] C:\USERS\MARCOS\DOCUMENTS\MICRO_2018_1\PROJETO1_PART2_REV1.X\MAIN.ASM 148 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[302] C:\USERS\MARCOS\DOCUMENTS\MICRO_2018_1\PROJETO1_PART2_REV1.X\MAIN.ASM 144 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[302] C:\USERS\MARCOS\DOCUMENTS\MICRO_2018_1\PROJETO1_PART2_REV1.X\MAIN.ASM 146 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[302] C:\USERS\MARCOS\DOCUMENTS\MICRO_2018_1\PROJETO1_PART2_REV1.X\MAIN.ASM 149 : Register in operand not in bank 0.  Ensure that bank bits are correct.
