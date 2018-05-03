@@ -1,6 +1,3 @@
-
-
-
 #INCLUDE <P16F628A.INC>		;ARQUIVO PADRÃO MICROCHIP PARA 16F628A
  __CONFIG _BOREN_OFF & _CP_OFF & _PWRTE_ON & _WDT_OFF & _LVP_OFF & _MCLRE_ON
 
@@ -8,56 +5,59 @@
 #DEFINE BANK0	BCF STATUS,RP0		;SETA BANK 0 DE MEMÓRIA
 #DEFINE BANK1	BSF STATUS,RP0		;SETA BANK 1 DE MEMÓRIA
 
-#DEFINE	T0_INTERRUPT	INTCON,	T0IF		;FLAG DE ESTOURO DO TIMER
-#DEFINE PC_INTERRUPT	INTCON, RBIF		;FLAG DE INTERRUPÇÃO  EM PORT CHANGE RB4:RB7
+#DEFINE	T0_INTERRUPT	INTCON,	T0IF	;FLAG DE ESTOURO DO TIMER
+#DEFINE PC_INTERRUPT	INTCON, RBIF	;FLAG DE INTERRUPÇÃO  EM PORT CHANGE RB4:RB7
 
 #DEFINE ESTADO_BOMBA	ESTADO,1
 #DEFINE ESTADO_VALVULA	ESTADO,2
  
- #DEFINE DELAY_CTE  .251
-;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *;* * * * * * * * * * * * * * * * *
-;*							   VARIÁVEIS								                               * 
-;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *;* * * * * * * * * * * * * * * * *
+#DEFINE DELAY_CTE  .251			;PRESET PARA TIMER0
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *;* * * * * * * * * * * *
+;*						VARIÁVEIS				    * 
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *;* * * * * * * * * * * *
 ;DEFINIÇÃO DO BLOCO DE VARIÁVEIS
-	CBLOCK 0x20				;ENDEREÇO INICIAL DA MÉMORIA DO USUÁRIO
+	CBLOCK 0x20			;ENDEREÇO INICIAL DA MÉMORIA DO USUÁRIO
 		ESTADO	
 		PB
 		OLD_ESTADO
-	ENDC						;FIM DE BLOCO DE VARIÁVEIS
-
+	ENDC				;FIM DE BLOCO DE VARIÁVEIS
 
 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-;*						DEFINE ENTRADAS														* 
+;*						DEFINE ENTRADAS				    * 
 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 #DEFINE I_CAIXA			PORTB,4
 #DEFINE I_CISTERNA		PORTB,5
 #DEFINE I_RUA			PORTB,6
-;#DEFINE 			PORTB,7
 
 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-;*						DEFINE SAIDAS														* 
+;*						DEFINE SAIDAS				    * 
 ;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 #DEFINE O_ON_OFF		PORTA,0
 #DEFINE O_BOMBA			PORTA,1
 #DEFINE O_VALVULA		PORTA,2
-
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*						INICIO					    * 
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 	ORG 0x00
 	GOTO	INICIO
 	
-	ORG	0x04
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*				ROTINAS DE INTERRUPÇÃO					    * 
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 	
+	ORG	0x04
 	MOVFW	ESTADO		
 	MOVWF	OLD_ESTADO
-	BTFSC	PC_INTERRUPT	    ;CHECA SE A INTERRUPÇÃO OCORREU EM RB7:RB4
+	BTFSC	PC_INTERRUPT	    ;CHECA SE A INTERRUPÇÃO OCORREU EM RB<7:4>
 	GOTO	INT_RB		    ;VAI PARA ROTINA DE INTERRUPÇÃO CORRESPONDENTE
 	BTFSC	T0_INTERRUPT	    ;CHECA SE A INTERRUPÇÃO OCORREU PELO ESTOURO TO TIMER0
 	GOTO	TIMER
 	RETFIE
 	
-TIMER
+TIMER	;ROTINA EXECUTADA APOS ESTOURO DO TIMER0
 	BCF	T0_INTERRUPT	    ;LIMPA FLAG DE INTERRUPÇÃO
 	BTFSC	O_BOMBA		    ;CASO A SAIDA ESTEJA EM 1
 	BCF	O_BOMBA		    ;A SAIDA VAI PARA 0
@@ -66,8 +66,7 @@ TIMER
 	BSF	INTCON, RBIE	    ;REHABILITA AS INTERRUPCOES EM RB
 	RETFIE
 	
-PULSA	
-	
+PULSA	;ROTINA PARA GERAR UM PULSO
 	MOVFW	ESTADO
 	XORWF	OLD_ESTADO, F	;OPERAÇÃO XOR PARA IDENTIFICAR A MUDANÇA DE ESTADO
 	BTFSC	OLD_ESTADO,1	;CASO HAJA MUDANÇA DE ESTADO EM ESTADO_BOMBA
@@ -77,10 +76,10 @@ PULSA
 	CALL	DELAY		;CHAMA DELAY (1S)
 	RETFIE
 	
-INT_RB
+INT_RB	;ROTINA EXECUTADA APÓS VARIAÇÃO DE ESTADO EM RB<7:4>
 	BSF	O_ON_OFF	;acende led de estado
 	MOVF	PORTB,W		;lê PORTB e copia em W
-	ANDLW	B'01110000'	;operação AND para que apenas os valores correspondentes as portas RB6, RB5 e RB4 permaneçam
+	ANDLW	B'01110000'	;operação AND para que apenas os valores correspondentes as portas RB<6:4> permaneçam
 	MOVWF	PB		;copia o novo valor de W na variavel PB
 	GOTO	CHECA_CAIXA	
 	
@@ -104,62 +103,55 @@ FECHA_BOMBA
 	RETFIE			;FIM DA INTERRUPÇÃO
 
 ABRE_BOMBA
-	BSF	ESTADO_BOMBA	;ESTADO DA BOMBA = DESLIGADO
+	BSF	ESTADO_BOMBA	;ESTADO DA BOMBA = LIGADO
 	BCF	PC_INTERRUPT	;LIMPA FLAG DE INTERRUPÇÃO
 	GOTO	PULSA
 	RETFIE		
 
 FECHA_VALVULA
-	BCF	ESTADO_VALVULA
+	BCF	ESTADO_VALVULA	;ESTADO DA VALVULA = DESLIGADO
 	GOTO	CHECA_BOMBA
 
 ABRE_VALVULA
-	BSF	ESTADO_VALVULA
+	BSF	ESTADO_VALVULA	;ESTADO DA VALVULA = LIGADO
 	GOTO	CHECA_BOMBA
 
 DELAY	
-	BCF	INTCON, RBIE
-	CLRF	TMR0
-	MOVLW	DELAY_CTE
-	MOVWF	TMR0
+	BCF	INTCON, RBIE	;DESABILITA INTERRUPÇOES EM RB<7:4>
+	CLRF	TMR0		;LIMPA TIMER0
+	MOVLW	DELAY_CTE	;
+	MOVWF	TMR0		;PRESETA O TIMER0 COM O VALOR DEFINIDO EM DELAY_CTE
 	RETURN
 
-LIMPA_TUDO
-	
+LIMPA_TUDO  ;LIMPA TODOS O REGISTRADORES NO INICIO DO PROGRAMA
 	CLRF	PORTA
 	CLRF	PORTB
 	CLRF	ESTADO
-	CLRF	OLD_ESTADO
-	
+	CLRF	OLD_ESTADO	
 	BSF	O_ON_OFF
 	RETURN
 	
-	
-MAIN
+MAIN	;LOOP INFINITO NA MAIN
 	GOTO	MAIN	 
-
 
 INICIO
 	BANK1
 	MOVLW	B'11100000'
-	MOVWF	TRISA
+	MOVWF	TRISA	    ;PORTA: SAIDAS: <4:0>;  ENTRADAS: <7:5>
 	MOVLW	B'11111111'
-	MOVWF	TRISB
+	MOVWF	TRISB	    ;PORTB: SAIDAS: <...>;  EMTRADAS: <7:0>
 
-	MOVLW	B'10010001'
-	MOVWF	OPTION_REG
-	MOVLW	B'10101000'
-	MOVWF	INTCON
+	MOVLW	B'10010001' ;!RBPU  INTEDG  T0CS  T0SE  PSA  PS2  PS1  PS0
+	MOVWF	OPTION_REG  ;  1      0      0     1     0    0    0    1
+	MOVLW	B'10101000' ;GIE  PEIE  T0IE  INTE  RBIE  T0IF  INTF  RBIF
+	MOVWF	INTCON	    ; 1     0    1      0    1     0    0     0
 
 	BANK0
 
-	CALL 	LIMPA_TUDO
+	CALL 	LIMPA_TUDO  ;
 	MOVF 	ESTADO,W
 	MOVWF 	PORTA
-	;BSF 	O_ON_OFF
 	GOTO	MAIN
+
 	
-
-
-
 	END
